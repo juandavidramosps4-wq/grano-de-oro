@@ -1,47 +1,280 @@
-    /* ── Hooks de React ── */
-    const { useState, useEffect, useMemo, useCallback, useRef } = React;
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Grano de Oro — Control de Calidad Cafetera</title>
+
+  <!--
+    ╔══════════════════════════════════════════════════════════════╗
+    ║   SISTEMA GRANO DE ORO — Control de Calidad Cafetera        ║
+    ║   Versión: 2.0                                               ║
+    ║   Autores:                                                   ║
+    ║     · Araujo, Juan Camilo                                    ║
+    ║     · Rodríguez, Kevin Santiago                              ║
+    ║     · Ramos, Juan David                                      ║
+    ║   Institución: Centro de Desarrollo Tecnológico              ║
+    ║                Agroindustrial                                ║
+    ╚══════════════════════════════════════════════════════════════╝
+
+    STACK:
+      · React 18 (UMD) + Babel Standalone (JSX en el navegador)
+      · Tailwind CSS Play CDN
+      · Gráficas: SVG puro — sin dependencias externas
+      · Persistencia: localStorage
+      · Sin backend ni build tools — abre directo en el navegador
+  -->
+
+  <!-- ── 1. Configuración de Tailwind ANTES del CDN ── -->
+  <script>
+    window.tailwind = {
+      config: {
+        theme: {
+          extend: {
+            colors: {
+              'co-bg':      '#120C08',
+              'co-sidebar': '#1C120A',
+              'co-surface': '#261A10',
+              'co-accent':  '#D2781E',
+              'co-hover':   '#F0A032',
+              'co-cream':   '#F5EBDC',
+              'co-beige':   '#AA9178',
+              'co-red':     '#BE3732',
+              'co-green':   '#37874B',
+              'co-blue':    '#3C78BE',
+              'co-border':  '#41291C',
+            }
+          }
+        }
+      }
+    };
+  </script>
+
+  <!-- ── 2. CDN: Tailwind, React 18, ReactDOM 18, Babel ── -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <!-- Nota: Recharts NO se usa — las gráficas son SVG puro para máxima compatibilidad -->
+
+  <!-- ── 3. Estilos globales ── -->
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background-color: #120C08;
+      color: #F5EBDC;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      overflow-x: hidden;
+    }
+
+    /* Scrollbar personalizado */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #1C120A; }
+    ::-webkit-scrollbar-thumb { background: #41291C; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #D2781E; }
+
+    /* Slider de calidad */
+    .quality-slider {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 8px;
+      border-radius: 4px;
+      outline: none;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .quality-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 22px; height: 22px;
+      border-radius: 50%;
+      background: white;
+      border: 3px solid currentColor;
+      cursor: pointer;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+    }
+    .quality-slider::-moz-range-thumb {
+      width: 22px; height: 22px;
+      border-radius: 50%;
+      background: white;
+      border: 3px solid currentColor;
+      cursor: pointer;
+    }
+
+    /* Toast */
+    @keyframes slideInRight {
+      from { transform: translateX(110%); opacity: 0; }
+      to   { transform: translateX(0);    opacity: 1; }
+    }
+    .toast-in { animation: slideInRight 0.3s ease forwards; }
+
+    /* KPI contador */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .kpi-val { animation: fadeUp 0.6s ease forwards; }
+
+    /* Badge gran altitud */
+    @keyframes softPulse {
+      0%,100% { box-shadow: 0 0 0 0 rgba(210,120,30,0.4); }
+      50%      { box-shadow: 0 0 0 6px rgba(210,120,30,0); }
+    }
+    .badge-pulse { animation: softPulse 2.5s infinite; }
+
+    /* Hover filas */
+    .trow:hover { background-color: rgba(65,41,28,0.35); }
+
+    /* Focus inputs */
+    input:focus, select:focus {
+      outline: none !important;
+      border-color: #D2781E !important;
+      box-shadow: 0 0 0 3px rgba(210,120,30,0.18) !important;
+    }
+
+    /* Date picker oscuro */
+    input[type="date"] { color-scheme: dark; }
+
+    /* Skeleton */
+    @keyframes shimmer {
+      0%   { background-position: -400px 0; }
+      100% { background-position:  400px 0; }
+    }
+    .skeleton {
+      background: linear-gradient(90deg, #261A10 25%, #2E2010 50%, #261A10 75%);
+      background-size: 400px 100%;
+      animation: shimmer 1.4s infinite linear;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <!-- ════════════════════════════════════════════════════════════
+       CÓDIGO FUENTE REACT — Babel lo compila en el navegador
+       ════════════════════════════════════════════════════════════ -->
+  <script type="text/babel">
+    const { useState, useEffect, useMemo, useCallback } = React;
+
+    /* ── Paleta de colores del sistema ── */
+    const C = {
+      bg:'#120C08', sidebar:'#1C120A', surface:'#261A10',
+      accent:'#D2781E', hover:'#F0A032', cream:'#F5EBDC',
+      beige:'#AA9178', red:'#BE3732', green:'#37874B',
+      blue:'#3C78BE', border:'#41291C',
+    };
+
+    const VARIEDADES   = ['Castillo','Geisha','Colombia','Borbón','Caturra','Typica','Mundo Novo','Pink Bourbon'];
+    const PIE_PALETTE  = [C.accent, C.green, C.blue, C.red, C.hover, C.beige, '#7C5CBF', '#2ABFBF'];
+    const STORAGE_KEY  = 'granoDeOro_inventario';
 
     /* ════════════════════════════════════════════════════════════
-       GRÁFICAS SVG PERSONALIZADAS — sin dependencias externas
-       Reemplazan Recharts para mayor confiabilidad offline
+       UTILIDADES
+       ════════════════════════════════════════════════════════════ */
+    const uid     = () => Math.random().toString(36).slice(2,9) + Date.now().toString(36);
+    const fmtCOP  = n  => new Intl.NumberFormat('es-CO',{style:'currency',currency:'COP',minimumFractionDigits:0}).format(n||0);
+    const fmtFecha = iso => { if(!iso) return '—'; const [y,m,d]=iso.split('-'); return `${d}/${m}/${y}`; };
+    const costoTotal  = lote => lote.ensayos.reduce((s,e)=>s+(parseFloat(e.costoCertificacion)||0),0);
+    const esGranAlt   = lote => parseFloat(lote.alturaCultivo) > 1800;
+    const colorPuntaje = p  => { const v=parseFloat(p); return v>=80?C.green:v>=60?'#D4B400':C.red; };
+    const promedioCAT  = lote => {
+      if (!lote.ensayos.length) return null;
+      return (lote.ensayos.reduce((a,e)=>a+parseFloat(e.puntajeCatacion),0)/lote.ensayos.length).toFixed(1);
+    };
+    const descargarCSV = lotes => {
+      const cols = ['Código Lote','Finca Origen','Variedad','Peso Sacos','Altitud (m)','Num Ensayos','Costo Total COP'];
+      const rows = lotes.map(l=>[l.codigoLote,l.fincaOrigen,l.variedadGrano,l.pesoSacos,l.alturaCultivo,l.ensayos.length,costoTotal(l)]);
+      const csv  = [cols,...rows].map(r=>r.map(v=>`"${v}"`).join(',')).join('\r\n');
+      const a    = Object.assign(document.createElement('a'),{
+        href: URL.createObjectURL(new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8;'})),
+        download: `grano_de_oro_${new Date().toISOString().slice(0,10)}.csv`
+      });
+      a.click();
+    };
+
+    /* ════════════════════════════════════════════════════════════
+       DATOS DE PRUEBA — se cargan si localStorage está vacío
+       ════════════════════════════════════════════════════════════ */
+    const DATOS_DEMO = [
+      { id:uid(), codigoLote:'LOT-001', fincaOrigen:'Finca El Paraíso',    variedadGrano:'Castillo', pesoSacos:120, alturaCultivo:1950,
+        ensayos:[{id:uid(),fechaAnalisis:'2026-01-15',nombreTecnico:'Dr. Carlos Medina', puntajeCatacion:87.5,costoCertificacion:250000},
+                 {id:uid(),fechaAnalisis:'2026-02-22',nombreTecnico:'Lic. Ana Ríos',      puntajeCatacion:91.0,costoCertificacion:280000}]},
+      { id:uid(), codigoLote:'LOT-002', fincaOrigen:'Hacienda La Aurora',  variedadGrano:'Geisha',   pesoSacos:80,  alturaCultivo:1750,
+        ensayos:[{id:uid(),fechaAnalisis:'2026-01-10',nombreTecnico:'Ing. Pedro Vargas',  puntajeCatacion:78.0,costoCertificacion:200000}]},
+      { id:uid(), codigoLote:'LOT-003', fincaOrigen:'Finca Las Nubes',     variedadGrano:'Colombia', pesoSacos:95,  alturaCultivo:2050,
+        ensayos:[{id:uid(),fechaAnalisis:'2026-03-05',nombreTecnico:'Dr. Carlos Medina', puntajeCatacion:93.5,costoCertificacion:300000},
+                 {id:uid(),fechaAnalisis:'2026-03-18',nombreTecnico:'Lic. Ana Ríos',      puntajeCatacion:89.0,costoCertificacion:275000},
+                 {id:uid(),fechaAnalisis:'2026-03-30',nombreTecnico:'Ing. Pedro Vargas',  puntajeCatacion:85.5,costoCertificacion:220000}]},
+      { id:uid(), codigoLote:'LOT-004', fincaOrigen:'El Vergel',           variedadGrano:'Castillo', pesoSacos:60,  alturaCultivo:1600, ensayos:[]},
+      { id:uid(), codigoLote:'LOT-005', fincaOrigen:'Finca Montañita',     variedadGrano:'Geisha',   pesoSacos:110, alturaCultivo:1900,
+        ensayos:[{id:uid(),fechaAnalisis:'2026-04-12',nombreTecnico:'Dra. Marcela Ortiz', puntajeCatacion:96.0,costoCertificacion:350000}]},
+    ];
+
+    /* ════════════════════════════════════════════════════════════
+       ICONOS SVG INLINE (basados en Lucide)
+       ════════════════════════════════════════════════════════════ */
+    const PATHS = {
+      coffee:        <><path d="M17 8h1a4 4 0 0 1 0 8h-1"/><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z"/><line x1="6" y1="2" x2="6" y2="4"/><line x1="10" y1="2" x2="10" y2="4"/><line x1="14" y1="2" x2="14" y2="4"/></>,
+      list:          <><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></>,
+      'bar-chart':   <><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></>,
+      'file-text':   <><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></>,
+      plus:          <><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></>,
+      edit:          <><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></>,
+      trash:         <><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></>,
+      eye:           <><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></>,
+      search:        <><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></>,
+      download:      <><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></>,
+      'chevron-up':  <polyline points="18 15 12 9 6 15"/>,
+      'chevron-down':<polyline points="6 9 12 15 18 9"/>,
+      x:             <><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></>,
+      check:         <polyline points="20 6 9 17 4 12"/>,
+      'alert-tri':   <><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></>,
+      filter:        <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>,
+      'arrow-left':  <><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></>,
+      mountain:      <path d="M8 3l4 8 5-5 5 15H2L8 3z"/>,
+      'trending-up': <><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></>,
+      info:          <><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></>,
+      'x-circle':    <><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></>,
+      save:          <><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></>,
+      package:       <><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></>,
+    };
+    const Ic = ({ n, size=16, color='currentColor', cls='' }) => (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
+           stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+           className={cls} style={{flexShrink:0}}>
+        {PATHS[n]||null}
+      </svg>
+    );
+
+    /* ════════════════════════════════════════════════════════════
+       GRÁFICAS SVG PURAS — sin dependencias externas
        ════════════════════════════════════════════════════════════ */
 
     /** Gráfica de barras horizontales */
     const BarChartSVG = ({ data, nameKey, valueKey, color, formatVal }) => {
-      if (!data || data.length === 0) return null;
-      const maxVal  = Math.max(...data.map(d => d[valueKey]), 1);
-      const bH      = 30;   // altura de cada barra
-      const gap     = 10;   // separación entre barras
-      const lblW    = 68;   // ancho reservado para la etiqueta izquierda
-      const valW    = 90;   // ancho reservado para el valor derecho
-      const svgW    = 480;  // ancho total del viewBox
-      const barW    = svgW - lblW - valW - 8;
-      const svgH    = data.length * (bH + gap) + gap;
-
+      if (!data||!data.length) return null;
+      const maxVal = Math.max(...data.map(d=>d[valueKey]), 1);
+      const bH=30, gap=10, lblW=72, valW=100, svgW=500;
+      const barW = svgW - lblW - valW;
+      const svgH = data.length * (bH + gap) + gap;
       return (
         <svg viewBox={`0 0 ${svgW} ${svgH}`} width="100%" style={{overflow:'visible'}}>
-          {data.map((d, i) => {
-            const w = Math.max(4, (d[valueKey] / maxVal) * barW);
-            const y = gap + i * (bH + gap);
+          {data.map((d,i)=>{
+            const w = Math.max(4,(d[valueKey]/maxVal)*barW);
+            const y = gap + i*(bH+gap);
             return (
               <g key={i}>
-                {/* Etiqueta */}
-                <text x={lblW - 6} y={y + bH / 2 + 4}
-                      textAnchor="end" fill={color}
-                      fontSize="11" fontFamily="monospace" fontWeight="700">
+                <text x={lblW-6} y={y+bH/2+4} textAnchor="end"
+                      fill={color} fontSize="11" fontFamily="monospace" fontWeight="700">
                   {d[nameKey]}
                 </text>
-                {/* Barra fondo */}
-                <rect x={lblW} y={y} width={barW} height={bH}
-                      fill="#41291C" rx="5"/>
-                {/* Barra valor */}
-                <rect x={lblW} y={y} width={w} height={bH}
-                      fill={color} rx="5"/>
-                {/* Valor */}
-                <text x={lblW + w + 6} y={y + bH / 2 + 4}
-                      textAnchor="start" fill="#F5EBDC"
-                      fontSize="10" fontFamily="monospace">
-                  {formatVal ? formatVal(d[valueKey]) : d[valueKey]}
+                <rect x={lblW} y={y} width={barW} height={bH} fill="#41291C" rx="5"/>
+                <rect x={lblW} y={y} width={w}    height={bH} fill={color}   rx="5"/>
+                <text x={lblW+w+6} y={y+bH/2+4} textAnchor="start"
+                      fill="#F5EBDC" fontSize="10" fontFamily="monospace">
+                  {formatVal?formatVal(d[valueKey]):d[valueKey]}
                 </text>
               </g>
             );
@@ -50,39 +283,990 @@
       );
     };
 
-    /** Gráfica de dona (donut) */
+    /** Gráfica de dona (donut) con SVG */
     const DonutChartSVG = ({ data, colors }) => {
-      if (!data || data.length === 0) return null;
-      const total = data.reduce((s, d) => s + d.value, 0);
-      if (total === 0) return null;
-      const cx = 100, cy = 100, R = 78, r = 50;
-      let angle = -Math.PI / 2;
-
-      const slices = data.map((d, i) => {
-        const sweep = (d.value / total) * 2 * Math.PI;
-        const x1 = cx + R * Math.cos(angle),      y1 = cy + R * Math.sin(angle);
-        const x2 = cx + R * Math.cos(angle+sweep), y2 = cy + R * Math.sin(angle+sweep);
-        const ix1 = cx + r * Math.cos(angle),      iy1 = cy + r * Math.sin(angle);
-        const ix2 = cx + r * Math.cos(angle+sweep),iy2 = cy + r * Math.sin(angle+sweep);
-        const large = sweep > Math.PI ? 1 : 0;
-        const path = `M${x1} ${y1} A${R} ${R} 0 ${large} 1 ${x2} ${y2} L${ix2} ${iy2} A${r} ${r} 0 ${large} 0 ${ix1} ${iy1}Z`;
+      if (!data||!data.length) return null;
+      const total = data.reduce((s,d)=>s+d.value,0);
+      if (!total) return null;
+      const cx=100, cy=100, R=80, r=50;
+      let angle = -Math.PI/2;
+      const slices = data.map((d,i)=>{
+        const sweep = (d.value/total)*2*Math.PI;
+        const x1=cx+R*Math.cos(angle),       y1=cy+R*Math.sin(angle);
+        const x2=cx+R*Math.cos(angle+sweep),  y2=cy+R*Math.sin(angle+sweep);
+        const ix1=cx+r*Math.cos(angle),        iy1=cy+r*Math.sin(angle);
+        const ix2=cx+r*Math.cos(angle+sweep),  iy2=cy+r*Math.sin(angle+sweep);
+        const large = sweep>Math.PI?1:0;
+        const path  = `M${x1} ${y1} A${R} ${R} 0 ${large} 1 ${x2} ${y2} L${ix2} ${iy2} A${r} ${r} 0 ${large} 0 ${ix1} ${iy1}Z`;
         angle += sweep;
-        return { path, fill: colors[i % colors.length], name: d.name, value: d.value };
+        return { path, fill:colors[i%colors.length], name:d.name, value:d.value };
       });
-
       return (
         <svg viewBox="0 0 200 200" width="180" height="180" style={{display:'block',margin:'0 auto'}}>
-          {slices.map((s, i) => (
+          {slices.map((s,i)=>(
             <path key={i} d={s.path} fill={s.fill} stroke="#120C08" strokeWidth="2">
               <title>{s.name}: {s.value}</title>
             </path>
           ))}
-          {/* Centro vacío con texto */}
           <text x="100" y="97" textAnchor="middle" fill="#AA9178" fontSize="10">Total</text>
-          <text x="100" y="111" textAnchor="middle" fill="#F5EBDC" fontSize="14" fontWeight="bold">
-            {total}
-          </text>
+          <text x="100" y="113" textAnchor="middle" fill="#F5EBDC" fontSize="15" fontWeight="bold">{total}</text>
         </svg>
       );
     };
 
+    /* ════════════════════════════════════════════════════════════
+       TOASTS
+       ════════════════════════════════════════════════════════════ */
+    const useToasts = () => {
+      const [toasts, setToasts] = useState([]);
+      const add = useCallback((msg,type='info')=>{
+        const id=uid();
+        setToasts(p=>[...p,{id,msg,type}]);
+        setTimeout(()=>setToasts(p=>p.filter(t=>t.id!==id)),3200);
+      },[]);
+      const rm = useCallback(id=>setToasts(p=>p.filter(t=>t.id!==id)),[]);
+      return {toasts,add,rm};
+    };
+    const Toasts = ({list,rm}) => (
+      <div className="fixed bottom-5 right-5 z-50 flex flex-col gap-2" style={{maxWidth:320}}>
+        {list.map(t=>{
+          const bg   = t.type==='success'?C.green:t.type==='error'?C.red:C.accent;
+          const icon = t.type==='success'?'check':t.type==='error'?'x-circle':'info';
+          return (
+            <div key={t.id} className="toast-in flex items-start gap-3 px-4 py-3 rounded-xl shadow-2xl"
+                 style={{backgroundColor:bg,color:'white',border:'1px solid rgba(255,255,255,0.15)'}}>
+              <Ic n={icon} size={15} color="white" cls="mt-0.5"/>
+              <span className="flex-1 text-sm font-medium leading-snug">{t.msg}</span>
+              <button onClick={()=>rm(t.id)}><Ic n="x" size={13} color="white"/></button>
+            </div>
+          );
+        })}
+      </div>
+    );
+
+    /* ════════════════════════════════════════════════════════════
+       MODAL DE CONFIRMACIÓN
+       ════════════════════════════════════════════════════════════ */
+    const ConfirmModal = ({cfg,close}) => {
+      if (!cfg) return null;
+      return (
+        <div className="fixed inset-0 z-40 flex items-center justify-center p-4"
+             style={{backgroundColor:'rgba(0,0,0,0.72)'}}>
+          <div className="rounded-2xl p-6 w-full max-w-sm shadow-2xl"
+               style={{backgroundColor:C.surface,border:`1px solid ${C.border}`}}>
+            <div className="flex items-center gap-3 mb-3">
+              <div className="rounded-full p-2.5" style={{backgroundColor:'rgba(190,55,50,0.14)'}}>
+                <Ic n="alert-tri" size={22} color={C.red}/>
+              </div>
+              <h3 className="text-base font-bold" style={{color:C.cream}}>{cfg.title||'¿Confirmar?'}</h3>
+            </div>
+            <p className="text-sm mb-5 leading-relaxed" style={{color:C.beige}}>{cfg.msg}</p>
+            <div className="flex gap-3">
+              <button onClick={close}
+                      className="flex-1 py-2 rounded-xl text-sm font-semibold"
+                      style={{backgroundColor:C.border,color:C.cream}}>Cancelar</button>
+              <button onClick={()=>{cfg.ok();close();}}
+                      className="flex-1 py-2 rounded-xl text-sm font-bold"
+                      style={{backgroundColor:C.red,color:'white'}}>
+                {cfg.btnTxt||'Confirmar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    /* ════════════════════════════════════════════════════════════
+       TOP BAR
+       ════════════════════════════════════════════════════════════ */
+    const TopBar = () => (
+      <header className="fixed top-0 left-0 right-0 z-30 flex items-center justify-between px-5"
+              style={{height:60,backgroundColor:C.sidebar,borderBottom:`1px solid ${C.border}`}}>
+        <div className="flex items-center gap-3">
+          <div className="rounded-lg p-2" style={{backgroundColor:C.accent}}>
+            <Ic n="coffee" size={20} color="white"/>
+          </div>
+          <div>
+            <h1 className="text-base font-black tracking-widest leading-tight" style={{color:C.accent}}>GRANO DE ORO</h1>
+            <p className="text-xs leading-tight" style={{color:C.beige}}>Control de Calidad Cafetera</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <span className="hidden sm:block text-xs" style={{color:C.beige}}>Centro de Desarrollo Tecnológico Agroindustrial</span>
+          <span className="text-xs px-3 py-1 rounded-full font-bold"
+                style={{backgroundColor:'rgba(210,120,30,0.14)',color:C.accent,border:`1px solid ${C.accent}`}}>v2.0</span>
+        </div>
+      </header>
+    );
+
+    /* ════════════════════════════════════════════════════════════
+       SIDEBAR
+       ════════════════════════════════════════════════════════════ */
+    const Sidebar = ({active,nav}) => {
+      const isInv = ['inventory','detail','lotForm','essayForm'].includes(active);
+      return (
+        <aside className="fixed left-0 z-20 flex flex-col"
+               style={{top:60,bottom:0,width:200,backgroundColor:C.sidebar,borderRight:`1px solid ${C.border}`}}>
+          <div className="px-3 pt-5 pb-2">
+            <p className="text-xs uppercase tracking-widest font-semibold" style={{color:C.border}}>Navegación</p>
+          </div>
+          <nav className="flex-1 px-2 flex flex-col gap-1 mt-1">
+            {[{id:'inventory',label:'Inventario',sub:'Gestión de lotes',icon:'list'},
+              {id:'reports',  label:'Reportes',  sub:'Estadísticas y KPIs',icon:'bar-chart'}
+            ].map(it=>{
+              const on = it.id==='inventory'?isInv:active===it.id;
+              return (
+                <button key={it.id} onClick={()=>nav(it.id)}
+                        className="flex items-center gap-3 px-3 py-3 rounded-lg w-full text-left transition-all"
+                        style={{backgroundColor:on?'rgba(210,120,30,0.13)':'transparent',
+                                color:on?C.accent:C.beige,
+                                borderLeft:on?`3px solid ${C.accent}`:'3px solid transparent'}}>
+                  <Ic n={it.icon} size={17}/>
+                  <div>
+                    <div className="text-sm font-semibold leading-tight">{it.label}</div>
+                    <div className="text-xs leading-tight opacity-60">{it.sub}</div>
+                  </div>
+                </button>
+              );
+            })}
+          </nav>
+          <div className="m-3 p-3 rounded-xl" style={{backgroundColor:C.surface,border:`1px solid ${C.border}`}}>
+            <p className="text-xs font-bold mb-1" style={{color:C.accent}}>Autores</p>
+            {['Araujo J.C.','Rodríguez K.S.','Ramos J.D.'].map(a=>(
+              <p key={a} className="text-xs" style={{color:C.beige}}>{a}</p>
+            ))}
+          </div>
+        </aside>
+      );
+    };
+
+    /* Estado vacío */
+    const Empty = ({title,sub,icon='package'}) => (
+      <div className="flex flex-col items-center justify-center py-14 gap-4">
+        <div className="rounded-full p-6" style={{backgroundColor:C.surface}}>
+          <Ic n={icon} size={44} color={C.border}/>
+        </div>
+        <div className="text-center">
+          <p className="font-semibold" style={{color:C.beige}}>{title}</p>
+          {sub&&<p className="text-sm mt-1" style={{color:C.border}}>{sub}</p>}
+        </div>
+      </div>
+    );
+
+    /* ════════════════════════════════════════════════════════════
+       PANEL 1 — INVENTARIO
+       RF-01 02 03 07 08 12 13 14
+       ════════════════════════════════════════════════════════════ */
+    const InventoryPanel = ({lotes,nav,selLote,setEditLote,onDel}) => {
+      const [search,   setSearch]   = useState('');
+      const [variedad, setVariedad] = useState('');
+      const [sortCol,  setSortCol]  = useState('codigoLote');
+      const [sortDir,  setSortDir]  = useState('asc');
+      const [loading,  setLoading]  = useState(true);
+
+      useEffect(()=>{ const t=setTimeout(()=>setLoading(false),550); return()=>clearTimeout(t); },[]);
+
+      const toggleSort = col => {
+        if(sortCol===col) setSortDir(d=>d==='asc'?'desc':'asc');
+        else { setSortCol(col); setSortDir('asc'); }
+      };
+
+      const variedadesUnicas = useMemo(()=>[...new Set(lotes.map(l=>l.variedadGrano))].sort(),[lotes]);
+
+      const lotesVis = useMemo(()=>{
+        let r=[...lotes];
+        if(variedad) r=r.filter(l=>l.variedadGrano.toLowerCase()===variedad.toLowerCase());
+        if(search.trim()){
+          const q=search.toLowerCase();
+          r=r.filter(l=>l.codigoLote.toLowerCase().includes(q)||l.fincaOrigen.toLowerCase().includes(q)||
+                        l.variedadGrano.toLowerCase().includes(q)||String(l.pesoSacos).includes(q)||String(l.alturaCultivo).includes(q));
+        }
+        r.sort((a,b)=>{
+          let va,vb;
+          switch(sortCol){
+            case 'fincaOrigen':   va=a.fincaOrigen;         vb=b.fincaOrigen;         break;
+            case 'variedadGrano': va=a.variedadGrano;       vb=b.variedadGrano;       break;
+            case 'pesoSacos':     va=parseFloat(a.pesoSacos);    vb=parseFloat(b.pesoSacos);    break;
+            case 'alturaCultivo': va=parseFloat(a.alturaCultivo); vb=parseFloat(b.alturaCultivo); break;
+            case 'ensayos':       va=a.ensayos.length;      vb=b.ensayos.length;      break;
+            case 'costoTotal':    va=costoTotal(a);          vb=costoTotal(b);          break;
+            default:              va=a.codigoLote;           vb=b.codigoLote;
+          }
+          if(va<vb) return sortDir==='asc'?-1:1;
+          if(va>vb) return sortDir==='asc'?1:-1;
+          return 0;
+        });
+        return r;
+      },[lotes,search,variedad,sortCol,sortDir]);
+
+      const Th = ({col,children,right}) => (
+        <th onClick={()=>toggleSort(col)}
+            className="px-3 py-3 cursor-pointer select-none whitespace-nowrap"
+            style={{color:C.beige,fontSize:11,fontWeight:700,textTransform:'uppercase',
+                    letterSpacing:'0.06em',textAlign:right?'right':'left'}}>
+          <span className="inline-flex items-center gap-1">
+            {children}
+            <span style={{opacity:sortCol===col?1:0.3}}>
+              <Ic n={sortCol===col&&sortDir==='desc'?'chevron-up':'chevron-down'}
+                  size={11} color={sortCol===col?C.accent:C.beige}/>
+            </span>
+          </span>
+        </th>
+      );
+
+      return (
+        <div className="flex flex-col h-full gap-4">
+          {/* Cabecera */}
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 className="text-xl font-bold" style={{color:C.cream}}>Inventario de Lotes</h2>
+              <p className="text-sm" style={{color:C.beige}}>
+                Mostrando <strong style={{color:C.accent}}>{lotesVis.length}</strong> de {lotes.length} lotes
+              </p>
+            </div>
+            <div className="flex gap-2 flex-wrap">
+              <button onClick={()=>descargarCSV(lotes)}
+                      className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-semibold"
+                      style={{backgroundColor:'rgba(60,120,190,0.18)',color:C.blue,border:`1px solid rgba(60,120,190,0.35)`}}
+                      title="Exportar CSV">
+                <Ic n="download" size={14}/><span className="hidden sm:inline">Exportar CSV</span>
+              </button>
+              <button onClick={()=>{setEditLote(null);nav('lotForm');}}
+                      className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold"
+                      style={{backgroundColor:C.accent,color:'white'}}>
+                <Ic n="plus" size={14}/>Nuevo Lote
+              </button>
+            </div>
+          </div>
+
+          {/* Filtros */}
+          <div className="flex flex-wrap gap-2">
+            <div className="flex-1 min-w-[200px] flex items-center gap-2 px-3 py-2 rounded-xl"
+                 style={{backgroundColor:C.surface,border:`1px solid ${C.border}`}}>
+              <Ic n="search" size={14} color={C.beige}/>
+              <input value={search} onChange={e=>setSearch(e.target.value)}
+                     placeholder="Buscar por código, finca, variedad, altitud…"
+                     className="flex-1 bg-transparent text-sm"
+                     style={{color:C.cream,border:'none',outline:'none'}}/>
+              {search&&<button onClick={()=>setSearch('')} style={{color:C.beige}}><Ic n="x" size={12}/></button>}
+            </div>
+            <div className="flex items-center gap-2 px-3 py-2 rounded-xl"
+                 style={{backgroundColor:C.surface,border:`1px solid ${C.border}`}}>
+              <Ic n="filter" size={13} color={C.beige}/>
+              <select value={variedad} onChange={e=>setVariedad(e.target.value)}
+                      className="bg-transparent text-sm"
+                      style={{color:C.cream,border:'none',outline:'none',minWidth:140}}>
+                <option value="" style={{backgroundColor:C.surface}}>Todas las variedades</option>
+                {variedadesUnicas.map(v=><option key={v} value={v} style={{backgroundColor:C.surface}}>{v}</option>)}
+              </select>
+            </div>
+          </div>
+
+          {/* Tabla */}
+          <div className="flex-1 overflow-auto rounded-xl" style={{border:`1px solid ${C.border}`}}>
+            <table className="w-full min-w-[720px]" style={{borderCollapse:'collapse'}}>
+              <thead style={{backgroundColor:C.surface,position:'sticky',top:0,zIndex:2}}>
+                <tr style={{borderBottom:`1px solid ${C.border}`}}>
+                  <Th col="codigoLote">Código</Th>
+                  <Th col="fincaOrigen">Finca</Th>
+                  <Th col="variedadGrano">Variedad</Th>
+                  <Th col="pesoSacos" right>Sacos</Th>
+                  <Th col="alturaCultivo">Altitud (m)</Th>
+                  <Th col="ensayos">Ensayos</Th>
+                  <Th col="costoTotal" right>Costo Total</Th>
+                  <th className="px-3 py-3"
+                      style={{color:C.beige,fontSize:11,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em'}}>
+                    Acciones
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {loading ? (
+                  [...Array(5)].map((_,i)=>(
+                    <tr key={i} style={{borderBottom:`1px solid ${C.border}`}}>
+                      {[...Array(8)].map((_,j)=>(
+                        <td key={j} className="px-3 py-4">
+                          <div className="skeleton h-4" style={{width:j===7?'80px':'100%'}}/>
+                        </td>
+                      ))}
+                    </tr>
+                  ))
+                ) : lotesVis.length===0 ? (
+                  <tr><td colSpan={8}>
+                    <Empty title="Sin resultados" sub="No hay lotes que coincidan con los filtros." icon="search"/>
+                  </td></tr>
+                ) : lotesVis.map(lote=>{
+                  const ct  = costoTotal(lote);
+                  const alt = esGranAlt(lote);
+                  const ne  = lote.ensayos.length;
+                  return (
+                    <tr key={lote.id} className="trow" style={{borderBottom:`1px solid ${C.border}`}}>
+                      <td className="px-3 py-3">
+                        <span className="font-mono font-bold text-sm" style={{color:C.accent}}>{lote.codigoLote}</span>
+                      </td>
+                      <td className="px-3 py-3 text-sm" style={{color:C.cream}}>{lote.fincaOrigen}</td>
+                      <td className="px-3 py-3">
+                        <span className="text-xs px-2 py-1 rounded-md font-medium"
+                              style={{backgroundColor:C.border,color:C.cream}}>{lote.variedadGrano}</span>
+                      </td>
+                      <td className="px-3 py-3 text-sm text-right" style={{color:C.cream}}>{lote.pesoSacos}</td>
+                      <td className="px-3 py-3">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-sm" style={{color:alt?C.hover:C.cream}}>{lote.alturaCultivo}</span>
+                          {alt&&(
+                            <span className="text-xs px-2 py-0.5 rounded-full font-bold badge-pulse"
+                                  style={{backgroundColor:'rgba(210,120,30,0.18)',color:C.accent,border:`1px solid ${C.accent}`}}>
+                              ↑ GRAN ALT.
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-3 py-3">
+                        <span className="font-bold text-sm px-2.5 py-1 rounded-full"
+                              style={{backgroundColor:ne>0?'rgba(55,135,75,0.15)':'rgba(65,41,28,0.6)',
+                                      color:ne>0?C.green:C.beige}}>
+                          {ne}
+                        </span>
+                      </td>
+                      <td className="px-3 py-3 text-sm font-mono text-right" style={{color:C.blue}}>{fmtCOP(ct)}</td>
+                      <td className="px-3 py-3">
+                        <div className="flex gap-1">
+                          <button onClick={()=>{selLote(lote.id);nav('detail');}}
+                                  className="p-2 rounded-lg" style={{backgroundColor:'rgba(60,120,190,0.14)',color:C.blue}}
+                                  title="Ver detalle"><Ic n="eye" size={14}/></button>
+                          <button onClick={()=>{setEditLote(lote);nav('lotForm');}}
+                                  className="p-2 rounded-lg" style={{backgroundColor:'rgba(210,120,30,0.14)',color:C.accent}}
+                                  title="Editar lote"><Ic n="edit" size={14}/></button>
+                          <button onClick={()=>onDel(lote)}
+                                  className="p-2 rounded-lg" style={{backgroundColor:'rgba(190,55,50,0.14)',color:C.red}}
+                                  title="Eliminar lote"><Ic n="trash" size={14}/></button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      );
+    };
+
+    /* ════════════════════════════════════════════════════════════
+       PANEL 2 — DETALLE DEL LOTE
+       RF-04 05 06 08
+       ════════════════════════════════════════════════════════════ */
+    const DetailPanel = ({lote,nav,onDelEnsayo,editEnsayo}) => {
+      if (!lote) return <Empty title="Lote no encontrado" sub="Selecciona un lote desde el inventario." icon="package"/>;
+      const ct=costoTotal(lote), avg=promedioCAT(lote), ga=esGranAlt(lote);
+      return (
+        <div className="flex flex-col gap-4">
+          <button onClick={()=>nav('inventory')}
+                  className="flex items-center gap-2 text-sm font-medium hover:opacity-75 w-fit"
+                  style={{color:C.beige}}>
+            <Ic n="arrow-left" size={15}/>Volver al inventario
+          </button>
+
+          {/* Datos del lote */}
+          <div className="rounded-2xl p-5" style={{backgroundColor:C.surface,border:`1px solid ${C.border}`}}>
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <div className="flex items-center gap-3 flex-wrap mb-1">
+                  <h2 className="text-2xl font-black font-mono" style={{color:C.accent}}>{lote.codigoLote}</h2>
+                  {ga&&(
+                    <span className="text-xs px-3 py-1 rounded-full font-bold badge-pulse"
+                          style={{backgroundColor:'rgba(210,120,30,0.18)',color:C.accent,border:`1px solid ${C.accent}`}}>
+                      GRAN ALTITUD
+                    </span>
+                  )}
+                </div>
+                <p className="text-lg font-semibold" style={{color:C.cream}}>{lote.fincaOrigen}</p>
+              </div>
+              <button onClick={()=>nav('essayForm')}
+                      className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold"
+                      style={{backgroundColor:C.accent,color:'white'}}>
+                <Ic n="plus" size={14}/>Agregar Ensayo
+              </button>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
+              {[{l:'Variedad',v:lote.variedadGrano},{l:'Peso (sacos)',v:`${lote.pesoSacos} sacos`},
+                {l:'Altitud cultivo',v:`${lote.alturaCultivo} m.s.n.m.`},{l:'Total ensayos',v:`${lote.ensayos.length} ensayo(s)`}
+              ].map(d=>(
+                <div key={d.l} className="rounded-xl p-3" style={{backgroundColor:C.bg}}>
+                  <p className="text-xs uppercase tracking-wide mb-1" style={{color:C.beige}}>{d.l}</p>
+                  <p className="text-sm font-bold" style={{color:C.cream}}>{d.v}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* KPIs del lote */}
+          <div className="grid grid-cols-3 gap-3">
+            {[{l:'Ensayos',v:lote.ensayos.length,color:C.blue,fmt:v=>v},
+              {l:'Costo Total',v:fmtCOP(ct),color:C.green,fmt:v=>v},
+              {l:'Puntaje Prom.',v:avg??'—',color:avg?colorPuntaje(avg):C.beige,fmt:v=>v}
+            ].map(k=>(
+              <div key={k.l} className="rounded-xl p-4 text-center" style={{backgroundColor:C.surface,border:`1px solid ${C.border}`}}>
+                <p className="text-xs uppercase tracking-wide mb-1" style={{color:C.beige}}>{k.l}</p>
+                <p className="text-2xl font-black" style={{color:k.color}}>{k.v}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* Tabla de ensayos */}
+          <div className="rounded-2xl overflow-hidden" style={{border:`1px solid ${C.border}`}}>
+            <div className="px-4 py-3 flex items-center gap-2" style={{backgroundColor:C.surface}}>
+              <Ic n="file-text" size={15} color={C.accent}/>
+              <h3 className="font-bold" style={{color:C.cream}}>Ensayos de Calidad</h3>
+            </div>
+            {lote.ensayos.length===0 ? (
+              <Empty title="Sin ensayos" sub="Agrega el primer ensayo de calidad a este lote." icon="file-text"/>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[550px]" style={{borderCollapse:'collapse'}}>
+                  <thead style={{backgroundColor:'rgba(65,41,28,0.35)'}}>
+                    <tr>
+                      {['Fecha Análisis','Técnico','Puntaje Catación','Costo Certificación','Acciones'].map(h=>(
+                        <th key={h} className="px-4 py-2.5 text-left"
+                            style={{color:C.beige,fontSize:11,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em'}}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {lote.ensayos.map((e,idx)=>(
+                      <tr key={e.id} className="trow" style={{borderTop:`1px solid ${C.border}`}}>
+                        <td className="px-4 py-3 text-sm" style={{color:C.cream}}>{fmtFecha(e.fechaAnalisis)}</td>
+                        <td className="px-4 py-3 text-sm" style={{color:C.cream}}>{e.nombreTecnico}</td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2">
+                            <div className="rounded-full overflow-hidden" style={{width:64,height:6,backgroundColor:C.border}}>
+                              <div className="h-full rounded-full" style={{width:`${e.puntajeCatacion}%`,backgroundColor:colorPuntaje(e.puntajeCatacion)}}/>
+                            </div>
+                            <span className="text-sm font-bold" style={{color:colorPuntaje(e.puntajeCatacion)}}>{e.puntajeCatacion}</span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-sm font-mono" style={{color:C.blue}}>{fmtCOP(e.costoCertificacion)}</td>
+                        <td className="px-4 py-3">
+                          <div className="flex gap-1">
+                            <button onClick={()=>editEnsayo({idx,data:e})}
+                                    className="p-2 rounded-lg" style={{backgroundColor:'rgba(210,120,30,0.14)',color:C.accent}}
+                                    title="Editar ensayo"><Ic n="edit" size={14}/></button>
+                            <button onClick={()=>onDelEnsayo(e.id,e.nombreTecnico)}
+                                    className="p-2 rounded-lg" style={{backgroundColor:'rgba(190,55,50,0.14)',color:C.red}}
+                                    title="Eliminar ensayo"><Ic n="trash" size={14}/></button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    };
+
+    /* ════════════════════════════════════════════════════════════
+       PANEL 3 — FORMULARIO LOTE (nuevo / editar)
+       RF-01 RF-03 RF-11
+       ════════════════════════════════════════════════════════════ */
+    const LotForm = ({editLote,lotes,onSave,nav,toast}) => {
+      const isEdit = !!editLote;
+      const BLANK  = {codigoLote:'',fincaOrigen:'',variedadGrano:'',pesoSacos:'',alturaCultivo:''};
+      const [form,    setForm]    = useState(BLANK);
+      const [errs,    setErrs]    = useState({});
+      const [touched, setTouched] = useState({});
+
+      useEffect(()=>{
+        if(editLote) setForm({codigoLote:editLote.codigoLote,fincaOrigen:editLote.fincaOrigen,
+                               variedadGrano:editLote.variedadGrano,pesoSacos:String(editLote.pesoSacos),
+                               alturaCultivo:String(editLote.alturaCultivo)});
+        else { setForm(BLANK); setErrs({}); setTouched({}); }
+      },[editLote]);
+
+      const validate = f => {
+        const e={};
+        if(!f.codigoLote.trim()) e.codigoLote='El código es obligatorio';
+        else if(lotes.some(l=>l.codigoLote===f.codigoLote&&(!isEdit||l.id!==editLote.id)))
+          e.codigoLote='Este código ya existe';
+        if(!f.fincaOrigen.trim())  e.fincaOrigen='La finca de origen es obligatoria';
+        if(!f.variedadGrano)        e.variedadGrano='Seleccione una variedad';
+        const p=parseFloat(f.pesoSacos);
+        if(!f.pesoSacos||isNaN(p)||p<=0) e.pesoSacos='El peso debe ser mayor a 0';
+        const a=parseFloat(f.alturaCultivo);
+        if(!f.alturaCultivo||isNaN(a)||a<=0) e.alturaCultivo='La altitud debe ser mayor a 0';
+        return e;
+      };
+      const change = (k,v)=>{ const nf={...form,[k]:v}; setForm(nf); if(touched[k]) setErrs(validate(nf)); };
+      const blur   = k   =>{ setTouched(p=>({...p,[k]:true})); setErrs(validate(form)); };
+      const submit = ()=>{
+        const allT=Object.fromEntries(Object.keys(BLANK).map(k=>[k,true]));
+        setTouched(allT);
+        const e=validate(form); setErrs(e);
+        if(Object.keys(e).length){ toast('Corrija los errores del formulario','error'); return; }
+        onSave({...form,pesoSacos:parseFloat(form.pesoSacos),alturaCultivo:parseFloat(form.alturaCultivo)});
+      };
+
+      const Field = ({k,label,type='text',ph})=>{
+        const hasErr=touched[k]&&errs[k], ok=touched[k]&&!errs[k]&&form[k];
+        const bc=hasErr?C.red:ok?C.green:C.border;
+        return (
+          <div>
+            <label className="block text-sm font-semibold mb-1" style={{color:C.beige}}>{label}</label>
+            <input type={type} value={form[k]} placeholder={ph}
+                   onChange={e=>change(k,e.target.value)} onBlur={()=>blur(k)}
+                   className="w-full px-3 py-2 rounded-xl text-sm"
+                   style={{backgroundColor:C.bg,color:C.cream,border:`1px solid ${bc}`,outline:'none'}}/>
+            {hasErr&&<p className="text-xs mt-1" style={{color:C.red}}>{errs[k]}</p>}
+            {ok&&!hasErr&&<p className="text-xs mt-1" style={{color:C.green}}>✓ Campo válido</p>}
+          </div>
+        );
+      };
+
+      return (
+        <div className="max-w-xl mx-auto">
+          <button onClick={()=>nav('inventory')}
+                  className="flex items-center gap-2 text-sm font-medium hover:opacity-75 mb-4"
+                  style={{color:C.beige}}>
+            <Ic n="arrow-left" size={15}/>{isEdit?'Cancelar edición':'Volver al inventario'}
+          </button>
+          <div className="rounded-2xl p-6" style={{backgroundColor:C.surface,border:`1px solid ${C.border}`}}>
+            <h2 className="text-xl font-bold mb-6" style={{color:C.cream}}>
+              {isEdit?`Editar Lote: ${editLote.codigoLote}`:'Registrar Nuevo Lote'}
+            </h2>
+            <div className="flex flex-col gap-4">
+              <Field k="codigoLote"    label="Código del Lote *"              ph="ej: LOT-006"/>
+              <Field k="fincaOrigen"   label="Finca de Origen *"              ph="ej: Finca El Manantial"/>
+              <div>
+                <label className="block text-sm font-semibold mb-1" style={{color:C.beige}}>Variedad de Grano *</label>
+                <select value={form.variedadGrano}
+                        onChange={e=>change('variedadGrano',e.target.value)} onBlur={()=>blur('variedadGrano')}
+                        className="w-full px-3 py-2 rounded-xl text-sm"
+                        style={{backgroundColor:C.bg,color:form.variedadGrano?C.cream:C.beige,outline:'none',
+                                border:`1px solid ${touched.variedadGrano&&errs.variedadGrano?C.red:touched.variedadGrano&&form.variedadGrano?C.green:C.border}`}}>
+                  <option value="" style={{backgroundColor:C.surface}}>Seleccionar variedad…</option>
+                  {VARIEDADES.map(v=><option key={v} value={v} style={{backgroundColor:C.surface}}>{v}</option>)}
+                </select>
+                {touched.variedadGrano&&errs.variedadGrano&&<p className="text-xs mt-1" style={{color:C.red}}>{errs.variedadGrano}</p>}
+              </div>
+              <Field k="pesoSacos"     label="Número de sacos *"              type="number" ph="ej: 120"/>
+              <Field k="alturaCultivo" label="Altitud de cultivo (m.s.n.m.) *" type="number" ph="ej: 1850"/>
+              {form.alturaCultivo&&parseFloat(form.alturaCultivo)>1800&&(
+                <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm"
+                     style={{backgroundColor:'rgba(210,120,30,0.09)',border:`1px solid ${C.accent}`,color:C.accent}}>
+                  <Ic n="mountain" size={14}/>Este lote se clasificará como <strong>Gran Altitud</strong> (&gt;1800 m)
+                </div>
+              )}
+            </div>
+            <div className="flex gap-3 mt-6 pt-5" style={{borderTop:`1px solid ${C.border}`}}>
+              <button onClick={()=>nav('inventory')}
+                      className="flex-1 py-2 rounded-xl text-sm font-semibold"
+                      style={{backgroundColor:C.border,color:C.cream}}>Cancelar</button>
+              <button onClick={submit}
+                      className="flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-sm font-bold"
+                      style={{backgroundColor:C.accent,color:'white'}}>
+                <Ic n="save" size={14}/>{isEdit?'Guardar Cambios':'Registrar Lote'}
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    /* ════════════════════════════════════════════════════════════
+       PANEL 4 — FORMULARIO ENSAYO (nuevo / editar)
+       RF-04 RF-06 RF-11 (slider semáforo)
+       ════════════════════════════════════════════════════════════ */
+    const EssayForm = ({lote,editEnsayo,onSave,nav,toast}) => {
+      const isEdit = !!editEnsayo;
+      const BLANK  = {fechaAnalisis:new Date().toISOString().slice(0,10),nombreTecnico:'',puntajeCatacion:80,costoCertificacion:''};
+      const [form,    setForm]    = useState(BLANK);
+      const [errs,    setErrs]    = useState({});
+      const [touched, setTouched] = useState({});
+
+      useEffect(()=>{
+        if(editEnsayo) setForm({fechaAnalisis:editEnsayo.data.fechaAnalisis,nombreTecnico:editEnsayo.data.nombreTecnico,
+                                 puntajeCatacion:parseFloat(editEnsayo.data.puntajeCatacion),costoCertificacion:String(editEnsayo.data.costoCertificacion)});
+        else { setForm(BLANK); setErrs({}); setTouched({}); }
+      },[editEnsayo]);
+
+      const validate = f => {
+        const e={};
+        if(!f.fechaAnalisis)        e.fechaAnalisis='La fecha es obligatoria';
+        if(!f.nombreTecnico.trim()) e.nombreTecnico='El nombre del técnico es obligatorio';
+        const p=parseFloat(f.puntajeCatacion);
+        if(isNaN(p)||p<0||p>100)    e.puntajeCatacion='El puntaje debe estar entre 0.0 y 100.0';
+        const c=parseFloat(f.costoCertificacion);
+        if(!f.costoCertificacion||isNaN(c)||c<0) e.costoCertificacion='El costo debe ser un número ≥ 0';
+        return e;
+      };
+      const change = (k,v)=>{ const nf={...form,[k]:v}; setForm(nf); if(touched[k]) setErrs(validate(nf)); };
+      const blur   = k   =>{ setTouched(p=>({...p,[k]:true})); setErrs(validate(form)); };
+      const submit = ()=>{
+        const allT=Object.fromEntries(Object.keys(BLANK).map(k=>[k,true]));
+        setTouched(allT);
+        const e=validate(form); setErrs(e);
+        if(Object.keys(e).length){ toast('Corrija los errores del formulario','error'); return; }
+        onSave({...form,puntajeCatacion:parseFloat(form.puntajeCatacion),costoCertificacion:parseFloat(form.costoCertificacion)});
+      };
+
+      const pVal   = parseFloat(form.puntajeCatacion)||0;
+      const sColor = colorPuntaje(pVal);
+      const sLabel = pVal>=80?'Excelente':pVal>=60?'Aceptable':'Deficiente';
+
+      return (
+        <div className="max-w-xl mx-auto">
+          <button onClick={()=>nav('detail')}
+                  className="flex items-center gap-2 text-sm font-medium hover:opacity-75 mb-4"
+                  style={{color:C.beige}}>
+            <Ic n="arrow-left" size={15}/>{isEdit?'Cancelar edición':'Volver al detalle'}
+          </button>
+          {lote&&(
+            <div className="flex items-center gap-2 mb-4 px-3 py-2.5 rounded-xl"
+                 style={{backgroundColor:'rgba(210,120,30,0.09)',border:`1px solid ${C.border}`}}>
+              <Ic n="package" size={13} color={C.accent}/>
+              <span className="text-sm" style={{color:C.beige}}>
+                Ensayo para lote: <strong style={{color:C.accent}}>{lote.codigoLote}</strong> — {lote.fincaOrigen}
+              </span>
+            </div>
+          )}
+          <div className="rounded-2xl p-6" style={{backgroundColor:C.surface,border:`1px solid ${C.border}`}}>
+            <h2 className="text-xl font-bold mb-6" style={{color:C.cream}}>
+              {isEdit?'Editar Ensayo de Calidad':'Registrar Ensayo de Calidad'}
+            </h2>
+            <div className="flex flex-col gap-4">
+              {/* Fecha */}
+              <div>
+                <label className="block text-sm font-semibold mb-1" style={{color:C.beige}}>Fecha de Análisis *</label>
+                <input type="date" value={form.fechaAnalisis}
+                       onChange={e=>change('fechaAnalisis',e.target.value)} onBlur={()=>blur('fechaAnalisis')}
+                       className="w-full px-3 py-2 rounded-xl text-sm"
+                       style={{backgroundColor:C.bg,color:C.cream,outline:'none',
+                               border:`1px solid ${touched.fechaAnalisis&&errs.fechaAnalisis?C.red:touched.fechaAnalisis?C.green:C.border}`}}/>
+                {touched.fechaAnalisis&&errs.fechaAnalisis&&<p className="text-xs mt-1" style={{color:C.red}}>{errs.fechaAnalisis}</p>}
+              </div>
+              {/* Técnico */}
+              <div>
+                <label className="block text-sm font-semibold mb-1" style={{color:C.beige}}>Nombre del Técnico *</label>
+                <input type="text" value={form.nombreTecnico} placeholder="ej: Dr. Carlos Medina"
+                       onChange={e=>change('nombreTecnico',e.target.value)} onBlur={()=>blur('nombreTecnico')}
+                       className="w-full px-3 py-2 rounded-xl text-sm"
+                       style={{backgroundColor:C.bg,color:C.cream,outline:'none',
+                               border:`1px solid ${touched.nombreTecnico&&errs.nombreTecnico?C.red:touched.nombreTecnico&&form.nombreTecnico?C.green:C.border}`}}/>
+                {touched.nombreTecnico&&errs.nombreTecnico&&<p className="text-xs mt-1" style={{color:C.red}}>{errs.nombreTecnico}</p>}
+              </div>
+              {/* Slider puntaje (RF-11) */}
+              <div>
+                <label className="block text-sm font-semibold mb-2" style={{color:C.beige}}>
+                  Puntaje de Catación * — rango [0.0 – 100.0]
+                </label>
+                <div className="rounded-xl p-4" style={{backgroundColor:C.bg,border:`1px solid ${C.border}`}}>
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-5xl font-black leading-none" style={{color:sColor}}>{pVal.toFixed(1)}</span>
+                    <span className="text-sm font-bold px-3 py-1 rounded-full"
+                          style={{backgroundColor:`${sColor}22`,color:sColor}}>{sLabel}</span>
+                  </div>
+                  <input type="number" min="0" max="100" step="0.5" value={form.puntajeCatacion}
+                         onChange={e=>change('puntajeCatacion',Math.min(100,Math.max(0,parseFloat(e.target.value)||0)))}
+                         className="w-full px-3 py-1.5 rounded-lg text-sm mb-3"
+                         style={{backgroundColor:C.surface,color:C.cream,border:`1px solid ${C.border}`,outline:'none'}}/>
+                  <input type="range" min="0" max="100" step="0.5" value={form.puntajeCatacion}
+                         onChange={e=>change('puntajeCatacion',parseFloat(e.target.value))}
+                         className="quality-slider"
+                         style={{background:`linear-gradient(to right,${sColor} 0%,${sColor} ${pVal}%,${C.border} ${pVal}%,${C.border} 100%)`,color:sColor}}/>
+                  <div className="flex justify-between text-xs mt-2">
+                    <span style={{color:C.red}}>0 — Deficiente</span>
+                    <span style={{color:'#D4B400'}}>60 — Aceptable</span>
+                    <span style={{color:C.green}}>80 — Excelente</span>
+                  </div>
+                </div>
+                {touched.puntajeCatacion&&errs.puntajeCatacion&&<p className="text-xs mt-1" style={{color:C.red}}>{errs.puntajeCatacion}</p>}
+              </div>
+              {/* Costo */}
+              <div>
+                <label className="block text-sm font-semibold mb-1" style={{color:C.beige}}>Costo de Certificación (COP) *</label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm select-none" style={{color:C.beige}}>$</span>
+                  <input type="number" value={form.costoCertificacion} placeholder="250000"
+                         onChange={e=>change('costoCertificacion',e.target.value)} onBlur={()=>blur('costoCertificacion')}
+                         className="w-full pl-7 pr-3 py-2 rounded-xl text-sm"
+                         style={{backgroundColor:C.bg,color:C.cream,outline:'none',
+                                 border:`1px solid ${touched.costoCertificacion&&errs.costoCertificacion?C.red:touched.costoCertificacion&&form.costoCertificacion?C.green:C.border}`}}/>
+                </div>
+                {touched.costoCertificacion&&errs.costoCertificacion&&<p className="text-xs mt-1" style={{color:C.red}}>{errs.costoCertificacion}</p>}
+                {form.costoCertificacion&&!errs.costoCertificacion&&<p className="text-xs mt-1 font-mono" style={{color:C.blue}}>{fmtCOP(parseFloat(form.costoCertificacion))}</p>}
+              </div>
+            </div>
+            <div className="flex gap-3 mt-6 pt-5" style={{borderTop:`1px solid ${C.border}`}}>
+              <button onClick={()=>nav('detail')}
+                      className="flex-1 py-2 rounded-xl text-sm font-semibold"
+                      style={{backgroundColor:C.border,color:C.cream}}>Cancelar</button>
+              <button onClick={submit}
+                      className="flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-sm font-bold"
+                      style={{backgroundColor:C.accent,color:'white'}}>
+                <Ic n="save" size={14}/>{isEdit?'Guardar Cambios':'Registrar Ensayo'}
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    /* ════════════════════════════════════════════════════════════
+       PANEL 5 — REPORTES Y ESTADÍSTICAS
+       RF-09 RF-10
+       ════════════════════════════════════════════════════════════ */
+    const KpiCard = ({label,value,icon,color}) => {
+      const [shown,setShown] = useState(0);
+      useEffect(()=>{
+        if(typeof value!=='number'){setShown(value);return;}
+        let cur=0;
+        const step=Math.max(1,Math.ceil(value/50));
+        const t=setInterval(()=>{ cur=Math.min(cur+step,value); setShown(cur); if(cur>=value) clearInterval(t); },18);
+        return()=>clearInterval(t);
+      },[value]);
+      return (
+        <div className="rounded-2xl p-5 flex items-start gap-4"
+             style={{backgroundColor:C.surface,border:`1px solid ${C.border}`}}>
+          <div className="rounded-xl p-3" style={{backgroundColor:`${color}1A`,flexShrink:0}}>
+            <Ic n={icon} size={26} color={color}/>
+          </div>
+          <div>
+            <p className="text-xs uppercase tracking-widest mb-1" style={{color:C.beige}}>{label}</p>
+            <p className="text-4xl font-black kpi-val" style={{color}}>{shown}</p>
+          </div>
+        </div>
+      );
+    };
+
+    const ReportsPanel = ({lotes}) => {
+      const granAlt     = useMemo(()=>lotes.filter(esGranAlt),[lotes]);
+      const totalEnsays = useMemo(()=>lotes.reduce((s,l)=>s+l.ensayos.length,0),[lotes]);
+      const ctTotal     = useMemo(()=>lotes.reduce((s,l)=>s+costoTotal(l),0),[lotes]);
+      const barData     = useMemo(()=>
+        lotes.filter(l=>l.ensayos.length>0).map(l=>({name:l.codigoLote,costo:costoTotal(l)})).sort((a,b)=>b.costo-a.costo),
+      [lotes]);
+      const pieData = useMemo(()=>{
+        const m={};
+        lotes.forEach(l=>{ m[l.variedadGrano]=(m[l.variedadGrano]||0)+1; });
+        return Object.entries(m).map(([name,value])=>({name,value}));
+      },[lotes]);
+
+      return (
+        <div className="flex flex-col gap-5">
+          <div>
+            <h2 className="text-xl font-bold" style={{color:C.cream}}>Reportes y Estadísticas</h2>
+            <p className="text-sm" style={{color:C.beige}}>Vista consolidada del inventario cafetalero</p>
+          </div>
+
+          {/* KPIs */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <KpiCard label="Total Lotes"    value={lotes.length}   icon="package"   color={C.blue}/>
+            <KpiCard label="Lotes > 1800 m" value={granAlt.length} icon="mountain"  color={C.accent}/>
+            <KpiCard label="Total Ensayos"  value={totalEnsays}    icon="file-text" color={C.green}/>
+          </div>
+
+          {/* Costo global */}
+          <div className="rounded-2xl p-4 flex items-center gap-4"
+               style={{backgroundColor:C.surface,border:`1px solid ${C.border}`}}>
+            <div className="rounded-xl p-3" style={{backgroundColor:`${C.green}1A`,flexShrink:0}}>
+              <Ic n="trending-up" size={26} color={C.green}/>
+            </div>
+            <div>
+              <p className="text-xs uppercase tracking-widest mb-1" style={{color:C.beige}}>Costo Total de Certificación</p>
+              <p className="text-2xl font-black font-mono kpi-val" style={{color:C.green}}>{fmtCOP(ctTotal)}</p>
+            </div>
+          </div>
+
+          {/* Gráficas SVG */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div className="rounded-2xl p-4" style={{backgroundColor:C.surface,border:`1px solid ${C.border}`}}>
+              <h3 className="font-bold mb-4 text-sm" style={{color:C.cream}}>Costo de Certificación por Lote</h3>
+              {barData.length>0 ? (
+                <BarChartSVG data={barData} nameKey="name" valueKey="costo" color={C.accent} formatVal={fmtCOP}/>
+              ) : (
+                <div className="text-center py-8 text-sm" style={{color:C.beige}}>Sin ensayos registrados aún</div>
+              )}
+            </div>
+            <div className="rounded-2xl p-4" style={{backgroundColor:C.surface,border:`1px solid ${C.border}`}}>
+              <h3 className="font-bold mb-4 text-sm" style={{color:C.cream}}>Distribución por Variedad de Grano</h3>
+              {pieData.length>0 ? (
+                <>
+                  <DonutChartSVG data={pieData} colors={PIE_PALETTE}/>
+                  <div className="flex flex-wrap gap-x-4 gap-y-1 justify-center mt-3">
+                    {pieData.map((d,i)=>(
+                      <div key={d.name} className="flex items-center gap-1.5 text-xs" style={{color:C.beige}}>
+                        <div className="w-2.5 h-2.5 rounded-sm" style={{backgroundColor:PIE_PALETTE[i%PIE_PALETTE.length]}}/>
+                        {d.name} <span style={{color:C.cream}}>({d.value})</span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <div className="text-center py-8 text-sm" style={{color:C.beige}}>Sin datos</div>
+              )}
+            </div>
+          </div>
+
+          {/* Tabla lotes gran altitud (RF-09) */}
+          <div className="rounded-2xl overflow-hidden" style={{border:`1px solid ${C.border}`}}>
+            <div className="px-4 py-3 flex items-center gap-2 flex-wrap" style={{backgroundColor:C.surface}}>
+              <Ic n="mountain" size={16} color={C.accent}/>
+              <h3 className="font-bold text-sm" style={{color:C.cream}}>Lotes Cultivados a Más de 1800 m.s.n.m.</h3>
+              <span className="ml-auto text-xs px-2.5 py-1 rounded-full font-bold"
+                    style={{backgroundColor:'rgba(210,120,30,0.15)',color:C.accent}}>
+                {granAlt.length} lote(s)
+              </span>
+            </div>
+            {granAlt.length===0 ? (
+              <Empty title="Sin lotes de gran altitud" sub="No hay lotes con altitud superior a 1800 m." icon="mountain"/>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[540px]" style={{borderCollapse:'collapse'}}>
+                  <thead style={{backgroundColor:'rgba(65,41,28,0.35)'}}>
+                    <tr>
+                      {['Código','Finca','Variedad','Sacos','Altitud (m)','Ensayos','Costo Total'].map(h=>(
+                        <th key={h} className="px-4 py-2.5 text-left"
+                            style={{color:C.beige,fontSize:11,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em'}}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {granAlt.map(l=>(
+                      <tr key={l.id} className="trow" style={{borderTop:`1px solid ${C.border}`}}>
+                        <td className="px-4 py-3"><span className="font-mono font-bold text-sm" style={{color:C.accent}}>{l.codigoLote}</span></td>
+                        <td className="px-4 py-3 text-sm" style={{color:C.cream}}>{l.fincaOrigen}</td>
+                        <td className="px-4 py-3 text-sm" style={{color:C.cream}}>{l.variedadGrano}</td>
+                        <td className="px-4 py-3 text-sm text-right" style={{color:C.cream}}>{l.pesoSacos}</td>
+                        <td className="px-4 py-3"><span className="text-sm font-bold" style={{color:C.hover}}>{l.alturaCultivo} m</span></td>
+                        <td className="px-4 py-3 text-sm" style={{color:C.blue}}>{l.ensayos.length}</td>
+                        <td className="px-4 py-3 text-sm font-mono" style={{color:C.green}}>{fmtCOP(costoTotal(l))}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    };
+
+    /* ════════════════════════════════════════════════════════════
+       APP — componente raíz, maneja estado global y navegación
+       ════════════════════════════════════════════════════════════ */
+    const App = () => {
+      const [lotes,      setLotes]      = useState([]);
+      const [panel,      setPanel]      = useState('inventory');
+      const [selLoteId,  setSelLoteId]  = useState(null);
+      const [editLote,   setEditLote]   = useState(null);
+      const [editEnsayo, setEditEnsayo] = useState(null);
+      const [confirmCfg, setConfirmCfg] = useState(null);
+      const [hydrated,   setHydrated]   = useState(false);
+      const {toasts, add:toast, rm:rmToast} = useToasts();
+
+      const selLote = useMemo(()=>lotes.find(l=>l.id===selLoteId)||null,[lotes,selLoteId]);
+
+      /* Cargar datos */
+      useEffect(()=>{
+        try { const raw=localStorage.getItem(STORAGE_KEY); setLotes(raw?JSON.parse(raw):DATOS_DEMO); }
+        catch { setLotes(DATOS_DEMO); }
+        setHydrated(true);
+      },[]);
+
+      /* Persistir */
+      useEffect(()=>{ if(hydrated) localStorage.setItem(STORAGE_KEY,JSON.stringify(lotes)); },[lotes,hydrated]);
+
+      /* Navegación */
+      const nav = useCallback(dest=>{
+        if(dest==='inventory'){ setEditLote(null); setEditEnsayo(null); }
+        if(dest==='detail')    setEditEnsayo(null);
+        setPanel(dest);
+      },[]);
+
+      /* RF-01 / RF-03: guardar lote */
+      const saveLote = useCallback(data=>{
+        setLotes(prev=>editLote
+          ? prev.map(l=>l.id===editLote.id?{...l,...data}:l)
+          : [...prev,{id:uid(),...data,ensayos:[]}]);
+        toast(editLote?'Lote actualizado exitosamente':'Lote registrado exitosamente','success');
+        setEditLote(null); nav('inventory');
+      },[editLote,nav,toast]);
+
+      /* RF-02: eliminar lote con cascada */
+      const delLote = useCallback(lote=>{
+        setConfirmCfg({
+          title:'¿Eliminar lote?',
+          msg:`¿Eliminar ${lote.codigoLote} (${lote.fincaOrigen})? Se eliminarán también sus ${lote.ensayos.length} ensayo(s). Esta acción no se puede deshacer.`,
+          btnTxt:'Sí, eliminar',
+          ok:()=>{ setLotes(p=>p.filter(l=>l.id!==lote.id));
+                   if(selLoteId===lote.id){ setSelLoteId(null); setPanel('inventory'); }
+                   toast(`Lote ${lote.codigoLote} eliminado`,'success'); }
+        });
+      },[selLoteId,toast]);
+
+      /* RF-04 / RF-06: guardar ensayo */
+      const saveEnsayo = useCallback(data=>{
+        setLotes(prev=>prev.map(l=>{
+          if(l.id!==selLoteId) return l;
+          const ensayos=editEnsayo
+            ? l.ensayos.map((e,i)=>i===editEnsayo.idx?{...e,...data}:e)
+            : [...l.ensayos,{id:uid(),...data}];
+          return {...l,ensayos};
+        }));
+        toast(editEnsayo?'Ensayo actualizado':'Ensayo registrado exitosamente','success');
+        setEditEnsayo(null); nav('detail');
+      },[selLoteId,editEnsayo,nav,toast]);
+
+      /* RF-05: anular ensayo */
+      const delEnsayo = useCallback((essayId,tecnico)=>{
+        setConfirmCfg({
+          title:'¿Anular ensayo?',
+          msg:`¿Anular el ensayo del técnico "${tecnico}"? Esta acción no se puede deshacer.`,
+          btnTxt:'Sí, anular',
+          ok:()=>{ setLotes(prev=>prev.map(l=>l.id!==selLoteId?l:{...l,ensayos:l.ensayos.filter(e=>e.id!==essayId)}));
+                   toast('Ensayo anulado exitosamente','success'); }
+        });
+      },[selLoteId,toast]);
+
+      const openEditEnsayo = useCallback(d=>{ setEditEnsayo(d); setPanel('essayForm'); },[]);
+
+      const renderPanel = () => {
+        switch(panel){
+          case 'inventory': return <InventoryPanel lotes={lotes} nav={nav} selLote={setSelLoteId} setEditLote={setEditLote} onDel={delLote}/>;
+          case 'detail':    return <DetailPanel lote={selLote} nav={nav} onDelEnsayo={delEnsayo} editEnsayo={openEditEnsayo}/>;
+          case 'lotForm':   return <LotForm editLote={editLote} lotes={lotes} onSave={saveLote} nav={nav} toast={toast}/>;
+          case 'essayForm': return <EssayForm lote={selLote} editEnsayo={editEnsayo} onSave={saveEnsayo} nav={nav} toast={toast}/>;
+          case 'reports':   return <ReportsPanel lotes={lotes}/>;
+          default:          return null;
+        }
+      };
+
+      return (
+        <div style={{minHeight:'100vh',backgroundColor:C.bg}}>
+          <TopBar/>
+          <Sidebar active={panel} nav={nav}/>
+          <main style={{marginTop:60,marginLeft:200,minHeight:'calc(100vh - 60px)',padding:24,overflowY:'auto'}}>
+            {!hydrated ? (
+              <div className="flex items-center justify-center" style={{height:'60vh'}}>
+                <div className="text-center">
+                  <div className="rounded-full p-6 mx-auto mb-4 inline-flex" style={{backgroundColor:C.surface}}>
+                    <Ic n="coffee" size={48} color={C.accent}/>
+                  </div>
+                  <p className="text-lg font-bold" style={{color:C.accent}}>GRANO DE ORO</p>
+                  <p className="text-sm mt-1" style={{color:C.beige}}>Cargando inventario…</p>
+                </div>
+              </div>
+            ) : renderPanel()}
+          </main>
+          <Toasts list={toasts} rm={rmToast}/>
+          <ConfirmModal cfg={confirmCfg} close={()=>setConfirmCfg(null)}/>
+        </div>
+      );
+    };
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+  </script>
+</body>
+</html>
