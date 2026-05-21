@@ -1,1 +1,38 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Grano de Oro — Control de Calidad Cafetera</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    body { background-color: #120C08; color: #F5EBDC; font-family: system-ui, sans-serif; padding: 20px; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
 
+  <script type="text/babel">
+    const { useState } = React;
+
+    function App() {
+      return (
+        <div style={{ maxWidth: '600px', margin: '40px auto', backgroundColor: '#1C120A', padding: '30px', borderRadius: '12px', border: '1px solid #41291C', textAlign: 'center' }}>
+          <h1 style={{ color: '#D2781E', marginBottom: '10px', fontSize: '24px' }}>☕ GRANO DE ORO</h1>
+          <p style={{ color: '#AA9178', marginBottom: '20px' }}>Sistema de Control de Calidad Cafetera v2.0</p>
+          <hr style={{ borderColor: '#41291C', marginBottom: '20px' }} />
+          <p style={{ color: '#F5EBDC' }}>¡El despliegue en GitHub Pages se ha completado con éxito!</p>
+          <p style={{ fontSize: '12px', color: '#AA9178', marginTop: '20px' }}>Centro de Desarrollo Tecnológico Agroindustrial</p>
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>
+Reparar cierres de código
